@@ -3,6 +3,8 @@ module.exports = {
   addTask,
   textExists,
   toggleComplete,
+  deleteTasks,
+  deleteTask,
 };
 
 function loadTasks(store) {
@@ -93,4 +95,47 @@ function tempErrorMessage(store, message) {
   setTimeout(() => {
     hideError(store);
   }, 2000);
+}
+
+function deleteTasks(store, ids) {
+  $.ajax({
+    url: '/api/tasks/del_tasks',
+    type: 'DELETE',
+    dataType: 'json',
+    data: { ids },
+    success: () => {
+      deletedTasks(store, ids);
+    },
+    error: (xhr, status, err) => {
+      toggleLoading(store, false);
+      tempErrorMessage(store, 'API Error');
+      console.log('/api/tasks/del_tasks', status, err.toString());
+    },
+  });
+}
+
+function deletedTasks(store, ids) {
+  store.trigger('DELETED_TASKS', { data: ids });
+}
+
+function deleteTask(store, id) {
+  toggleLoading(store, true);
+  $.ajax({
+    url: `/api/tasks/${id}`,
+    type: 'DELETE',
+    dataType: 'json',
+    success: () => {
+      deletedTask(store, id);
+      toggleLoading(store, false);
+    },
+    error: (xhr, status, err) => {
+      toggleLoading(store, false);
+      tempErrorMessage(store, 'API Error');
+      console.log('/api/tasks/del_tasks', status, err.toString());
+    },
+  });
+}
+
+function deletedTask(store, id) {
+  store.trigger('DELETED_TASK', { data: id });
 }

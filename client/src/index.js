@@ -59,6 +59,24 @@ store.on('HIDE_ERROR', () => {
   store.setState({ isError: false, errorMessage: '' });
 });
 
+store.on('DELETED_TASKS', (action) => {
+  let newTasks = store.getState().tasks.slice();
+  for (let i = 0; i < action.data.length; i += 1) {
+    const taskIndex = newTasks.findIndex((task) => {
+      return task.id == action.data[i];
+    });
+    newTasks.splice(taskIndex, 1);
+  }
+  store.setState({ tasks: newTasks });
+});
+
+store.on('DELETED_TASK', (action) => {
+  const newTasks = store.getState().tasks.filter((task) => {
+    return task.id != action.data;
+  });
+  store.setState({ tasks: newTasks });
+});
+
 document.addEventListener('DOMContentLoaded', () => {
   riot.mount('todo-app', { store });
 });

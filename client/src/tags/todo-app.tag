@@ -7,6 +7,14 @@
     istext={this.state.isText}
   >
   </task-form>
+  <button
+    class="del"
+    onclick={handleDeleteTasks}
+    disabled={this.state.tasks.filter(complete).length == 0}
+  >
+    Del Tasks X {this.state.tasks.filter(complete).length}
+  </button>
+  <div style="clear: both"></div>
   <error-message
     message={this.state.errorMessage}
     iserror={this.state.isError}
@@ -16,6 +24,7 @@
   <task-list
     tasks={this.state.tasks}
     handlecheck={handleTaskCompletionChange}
+    handledeletetask={handleDeleteTask}
   >
   </task-list>
 
@@ -42,6 +51,23 @@
 
     handleTaskCompletionChange(id, isComplete) {
       actions.toggleComplete(store, id, isComplete)
+    }
+
+    complete(task) {
+      return task.isComplete == true
+    }
+
+    handleDeleteTasks() {
+      let ids = []
+      const comp = this.state.tasks.filter((task) => this.complete(task))
+      for (let i = 0; i < comp.length; i += 1) {
+        ids[i] = comp[i].id
+      }
+      actions.deleteTasks(store, ids)
+    }
+
+    handleDeleteTask(id) {
+      actions.deleteTask(store, id)
     }
   </script>
 </todo-app>

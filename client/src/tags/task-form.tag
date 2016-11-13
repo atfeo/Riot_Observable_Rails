@@ -28,4 +28,10 @@
       this.opts.handlekeyup(this.newTask.value)
     }
   </script>
+
+  <style scoped>
+    :scope form {
+      float: left;
+    }
+  </style>
 </task-form>

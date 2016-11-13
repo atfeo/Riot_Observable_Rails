@@ -10,6 +10,14 @@
         >
         {task.name}
       </label>
+      <button
+        class="del"
+        id={task.id}
+        show={task.isComplete}
+        onclick={handleClick}
+      >
+        Del
+      </button>
     </li>
   </ul>
 
@@ -17,5 +25,15 @@
     handleCheck(e) {
       this.opts.handlecheck(e.target.id, e.target.checked)
     }
+
+    handleClick(e) {
+      this.opts.handledeletetask(e.target.id)
+    }
   </script>
+
+  <style scoped>
+    :scope .del {
+      float: right;
+    }
+  </style>
 </task-list>

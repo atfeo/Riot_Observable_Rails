@@ -125,6 +125,29 @@
 	  store.setState({ isError: false, errorMessage: '' });
 	});
 
+	store.on('DELETED_TASKS', function (action) {
+	  var newTasks = store.getState().tasks.slice();
+
+	  var _loop = function _loop(i) {
+	    var taskIndex = newTasks.findIndex(function (task) {
+	      return task.id == action.data[i];
+	    });
+	    newTasks.splice(taskIndex, 1);
+	  };
+
+	  for (var i = 0; i < action.data.length; i += 1) {
+	    _loop(i);
+	  }
+	  store.setState({ tasks: newTasks });
+	});
+
+	store.on('DELETED_TASK', function (action) {
+	  var newTasks = store.getState().tasks.filter(function (task) {
+	    return task.id != action.data;
+	  });
+	  store.setState({ tasks: newTasks });
+	});
+
 	document.addEventListener('DOMContentLoaded', function () {
 	  _riot2.default.mount('todo-app', { store: store });
 	});
@@ -2834,7 +2857,7 @@
 
 	var riot = __webpack_require__(1);
 
-	riot.tag2('todo-app', '<h3>Todo List</h3> <task-form addtask="{this.handleNewTask}" handlekeyup="{handleInputForm}" objects="{this.state.tasks}" istext="{this.state.isText}"> </task-form> <error-message message="{this.state.errorMessage}" iserror="{this.state.isError}"> </error-message> <loading-indicator loading="{this.state.isLoading}"></loading-indicator> <task-list tasks="{this.state.tasks}" handlecheck="{handleTaskCompletionChange}"> </task-list>', '', '', function(opts) {
+	riot.tag2('todo-app', '<h3>Todo List</h3> <task-form addtask="{this.handleNewTask}" handlekeyup="{handleInputForm}" objects="{this.state.tasks}" istext="{this.state.isText}"> </task-form> <button class="del" onclick="{handleDeleteTasks}" __disabled="{this.state.tasks.filter(complete).length == 0}"> Del Tasks X {this.state.tasks.filter(complete).length} </button> <div style="clear: both"></div> <error-message message="{this.state.errorMessage}" iserror="{this.state.isError}"> </error-message> <loading-indicator loading="{this.state.isLoading}"></loading-indicator> <task-list tasks="{this.state.tasks}" handlecheck="{handleTaskCompletionChange}" handledeletetask="{handleDeleteTask}"> </task-list>', '', '', function(opts) {
 	    const actions = __webpack_require__(4)
 	    const store = this.opts.store
 
@@ -2858,6 +2881,23 @@
 	    this.handleTaskCompletionChange = function(id, isComplete) {
 	      actions.toggleComplete(store, id, isComplete)
 	    }.bind(this)
+
+	    this.complete = function(task) {
+	      return task.isComplete == true
+	    }.bind(this)
+
+	    this.handleDeleteTasks = function() {
+	      let ids = []
+	      const comp = this.state.tasks.filter((task) => this.complete(task))
+	      for (let i = 0; i < comp.length; i += 1) {
+	        ids[i] = comp[i].id
+	      }
+	      actions.deleteTasks(store, ids)
+	    }.bind(this)
+
+	    this.handleDeleteTask = function(id) {
+	      actions.deleteTask(store, id)
+	    }.bind(this)
 	});
 
 
@@ -2871,7 +2911,9 @@
 	  loadTasks: loadTasks,
 	  addTask: addTask,
 	  textExists: textExists,
-	  toggleComplete: toggleComplete
+	  toggleComplete: toggleComplete,
+	  deleteTasks: deleteTasks,
+	  deleteTask: deleteTask
 	};
 
 	function loadTasks(store) {
@@ -2964,15 +3006,62 @@
 	  }, 2000);
 	}
 
+	function deleteTasks(store, ids) {
+	  $.ajax({
+	    url: '/api/tasks/del_tasks',
+	    type: 'DELETE',
+	    dataType: 'json',
+	    data: { ids: ids },
+	    success: function success() {
+	      deletedTasks(store, ids);
+	    },
+	    error: function error(xhr, status, err) {
+	      toggleLoading(store, false);
+	      tempErrorMessage(store, 'API Error');
+	      console.log('/api/tasks/del_tasks', status, err.toString());
+	    }
+	  });
+	}
+
+	function deletedTasks(store, ids) {
+	  store.trigger('DELETED_TASKS', { data: ids });
+	}
+
+	function deleteTask(store, id) {
+	  toggleLoading(store, true);
+	  $.ajax({
+	    url: '/api/tasks/' + id,
+	    type: 'DELETE',
+	    dataType: 'json',
+	    success: function success() {
+	      deletedTask(store, id);
+	      toggleLoading(store, false);
+	    },
+	    error: function error(xhr, status, err) {
+	      toggleLoading(store, false);
+	      tempErrorMessage(store, 'API Error');
+	      console.log('/api/tasks/del_tasks', status, err.toString());
+	    }
+	  });
+	}
+
+	function deletedTask(store, id) {
+	  store.trigger('DELETED_TASK', { data: id });
+	}
+
 /***/ },
 /* 5 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var riot = __webpack_require__(1);
 
-	riot.tag2('task-list', '<ul> <li each="{task in this.opts.tasks}"> <label class="{completed: task.isComplete}"> <input type="checkbox" id="{task.id}" __checked="{task.isComplete}" onchange="{handleCheck}"> {task.name} </label> </li> </ul>', '', '', function(opts) {
+	riot.tag2('task-list', '<ul> <li each="{task in this.opts.tasks}"> <label class="{completed: task.isComplete}"> <input type="checkbox" id="{task.id}" __checked="{task.isComplete}" onchange="{handleCheck}"> {task.name} </label> <button class="del" id="{task.id}" show="{task.isComplete}" onclick="{handleClick}"> Del </button> </li> </ul>', 'task-list .del,[riot-tag="task-list"] .del,[data-is="task-list"] .del{ float: right; }', '', function(opts) {
 	    this.handleCheck = function(e) {
 	      this.opts.handlecheck(e.target.id, e.target.checked)
+	    }.bind(this)
+
+	    this.handleClick = function(e) {
+	      this.opts.handledeletetask(e.target.id)
 	    }.bind(this)
 	});
 
@@ -2993,7 +3082,7 @@
 
 	var riot = __webpack_require__(1);
 
-	riot.tag2('task-form', '<form onsubmit="{handleSubmit}"> <input type="text" name="newTask" onkeyup="{handleKeyup}" placeholder="new task"> <button type="submit" __disabled="{!this.opts.istext}"> Add Task # {this.opts.objects.length + 1} </button> </form>', '', '', function(opts) {
+	riot.tag2('task-form', '<form onsubmit="{handleSubmit}"> <input type="text" name="newTask" onkeyup="{handleKeyup}" placeholder="new task"> <button type="submit" __disabled="{!this.opts.istext}"> Add Task # {this.opts.objects.length + 1} </button> </form>', 'task-form form,[riot-tag="task-form"] form,[data-is="task-form"] form{ float: left; }', '', function(opts) {
 	    this.handleSubmit = function() {
 	      if (!this.newTask.value) {
 	        return
