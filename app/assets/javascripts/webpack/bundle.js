@@ -58,6 +58,8 @@
 
 	__webpack_require__(6);
 
+	__webpack_require__(7);
+
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
@@ -93,6 +95,14 @@
 
 	store.on('TOGGLE_LOADING', function (action) {
 	  store.setState({ isLoading: action.data });
+	});
+
+	store.on('TASK_ADDED', function (action) {
+	  store.setState({ tasks: store.getState().tasks.concat(action.data) });
+	});
+
+	store.on('TEXT_EXISTS', function (action) {
+	  store.setState({ isText: action.data });
 	});
 
 	document.addEventListener('DOMContentLoaded', function () {
@@ -2804,7 +2814,7 @@
 
 	var riot = __webpack_require__(1);
 
-	riot.tag2('todo-app', '<loading-indicator loading="{this.state.isLoading}"></loading-indicator> <task-list tasks="{this.state.tasks}"></task-list>', '', '', function(opts) {
+	riot.tag2('todo-app', '<h3>Todo List</h3> <task-form addtask="{this.handleNewTask}" handlekeyup="{handleInputForm}" objects="{this.state.tasks}" istext="{this.state.isText}"> </task-form> <loading-indicator loading="{this.state.isLoading}"></loading-indicator> <task-list tasks="{this.state.tasks}"></task-list>', '', '', function(opts) {
 	    const actions = __webpack_require__(4)
 	    const store = this.opts.store
 
@@ -2816,6 +2826,14 @@
 	      this.state = store.getState()
 	      this.update()
 	    })
+
+	    this.handleNewTask = function(task) {
+	      actions.addTask(store, task)
+	    }.bind(this)
+
+	    this.handleInputForm = function(value) {
+	      actions.textExists(store, value)
+	    }.bind(this)
 	});
 
 
@@ -2826,7 +2844,9 @@
 	'use strict';
 
 	module.exports = {
-	  loadTasks: loadTasks
+	  loadTasks: loadTasks,
+	  addTask: addTask,
+	  textExists: textExists
 	};
 
 	function loadTasks(store) {
@@ -2855,6 +2875,32 @@
 	  store.trigger('TOGGLE_LOADING', { data: isLoading });
 	}
 
+	function addTask(store, newTask) {
+	  toggleLoading(store, true);
+	  $.ajax({
+	    url: '/api/tasks.json',
+	    type: 'POST',
+	    dataType: 'json',
+	    data: { name: newTask },
+	    success: function success(res) {
+	      newTaskAdded(store, res.id, res.name);
+	      toggleLoading(store, false);
+	    },
+	    error: function error(xhr, status, err) {
+	      toggleLoading(store, false);
+	      console.log('/api/tasks.json', status, err.toString());
+	    }
+	  });
+	}
+
+	function newTaskAdded(store, id, name) {
+	  store.trigger('TASK_ADDED', { data: { id: id, name: name } });
+	}
+
+	function textExists(store, value) {
+	  store.trigger('TEXT_EXISTS', { data: value });
+	}
+
 /***/ },
 /* 5 */
 /***/ function(module, exports, __webpack_require__) {
@@ -2872,6 +2918,28 @@
 	var riot = __webpack_require__(1);
 
 	riot.tag2('loading-indicator', '<img src="/assets/loading.gif" show="{this.opts.loading}">', '', '', function(opts) {
+	});
+
+
+/***/ },
+/* 7 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var riot = __webpack_require__(1);
+
+	riot.tag2('task-form', '<form onsubmit="{handleSubmit}"> <input type="text" name="newTask" onkeyup="{handleKeyup}" placeholder="new task"> <button type="submit" __disabled="{!this.opts.istext}"> Add Task # {this.opts.objects.length + 1} </button> </form>', '', '', function(opts) {
+	    this.handleSubmit = function() {
+	      if (!this.newTask.value) {
+	        return
+	      }
+
+	      this.opts.addtask(this.newTask.value)
+	      this.newTask.value = ''
+	    }.bind(this)
+
+	    this.handleKeyup = function() {
+	      this.opts.handlekeyup(this.newTask.value)
+	    }.bind(this)
 	});
 
 

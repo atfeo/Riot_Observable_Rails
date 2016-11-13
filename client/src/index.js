@@ -3,6 +3,7 @@ import riot from 'riot';
 import './tags/todo-app.tag';
 import './tags/task-list.tag';
 import './tags/loading-indicator.tag';
+import './tags/task-form.tag';
 
 class Store {
   constructor() {
@@ -27,6 +28,14 @@ store.on('TASKS_LOADED', (tasks) => {
 
 store.on('TOGGLE_LOADING', (action) => {
   store.setState({ isLoading: action.data });
+});
+
+store.on('TASK_ADDED', (action) => {
+  store.setState({ tasks: store.getState().tasks.concat(action.data) });
+});
+
+store.on('TEXT_EXISTS', (action) => {
+  store.setState({ isText: action.data });
 });
 
 document.addEventListener('DOMContentLoaded', () => {
