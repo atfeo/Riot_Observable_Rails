@@ -7,8 +7,17 @@
     istext={this.state.isText}
   >
   </task-form>
+  <error-message
+    message={this.state.errorMessage}
+    iserror={this.state.isError}
+  >
+  </error-message>
   <loading-indicator loading={this.state.isLoading}></loading-indicator>
-  <task-list tasks={this.state.tasks}></task-list>
+  <task-list
+    tasks={this.state.tasks}
+    handlecheck={handleTaskCompletionChange}
+  >
+  </task-list>
 
   <script>
     const actions = require('../actions.js')
@@ -29,6 +38,10 @@
 
     handleInputForm(value) {
       actions.textExists(store, value)
+    }
+
+    handleTaskCompletionChange(id, isComplete) {
+      actions.toggleComplete(store, id, isComplete)
     }
   </script>
 </todo-app>

@@ -2,6 +2,7 @@ module.exports = {
   loadTasks,
   addTask,
   textExists,
+  toggleComplete,
 };
 
 function loadTasks(store) {
@@ -17,6 +18,7 @@ function loadTasks(store) {
     },
     error: (xhr, status, err) => {
       toggleLoading(store, false);
+      tempErrorMessage(store, 'API Error');
       console.log('/api/tasks.json', status, err.toString());
     },
   });
@@ -43,6 +45,7 @@ function addTask(store, newTask) {
     },
     error: (xhr, status, err) => {
       toggleLoading(store, false);
+      tempErrorMessage(store, 'API Error');
       console.log('/api/tasks.json', status, err.toString());
     },
   });
@@ -54,4 +57,40 @@ function newTaskAdded(store, id, name) {
 
 function textExists(store, value) {
   store.trigger('TEXT_EXISTS', { data: value });
+}
+
+function toggleComplete(store, id, isComplete) {
+  $.ajax({
+    url: `/api/tasks/${id}`,
+    type: 'PATCH',
+    dataType: 'json',
+    data: { isComplete },
+    success: (res) => {
+      completeChanged(store, res.id, res.isComplete);
+    },
+    error: (xhr, status, err) => {
+      tempErrorMessage(store, 'API Error');
+      completeChanged(store, id, !isComplete);
+      console.log(`/api/tasks/${id}`, status, err.toString());
+    },
+  });
+}
+
+function completeChanged(store, id, isComplete) {
+  store.trigger('TASK_COMPLETION_CHANGED', { data: { id, isComplete } });
+}
+
+function showError(store, message) {
+  store.trigger('SHOW_ERROR', { data: message });
+}
+
+function hideError(store) {
+  store.trigger('HIDE_ERROR');
+}
+
+function tempErrorMessage(store, message) {
+  showError(store, message);
+  setTimeout(() => {
+    hideError(store);
+  }, 2000);
 }
